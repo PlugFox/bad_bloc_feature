@@ -100,9 +100,9 @@ class _TickerWidgetState extends State<TickerWidget> {
         SizedBox(
           height: 50,
           width: 480,
-          child: StreamBuilder<MutableTick>(
-            stream: _ticker.whereState<MutableTick>(),
-            builder: (BuildContext context, AsyncSnapshot<MutableTick> _) =>
+          child: StreamBuilder<BlocState>(
+            stream: _ticker.whereState<BlocState>(),
+            builder: (BuildContext context, AsyncSnapshot<BlocState> _) =>
               Text(_generateCurrentTime(), textAlign: TextAlign.center, textScaleFactor: 2,),
           ),
         ),
