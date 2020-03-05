@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["rxdart|lib/streams.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["async"],"hasMain":false}

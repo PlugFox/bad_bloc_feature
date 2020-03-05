@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["rxdart|lib/rxdart.dart","rxdart|lib/src/streams/replay_stream.dart","rxdart|lib/src/streams/value_stream.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["async"],"hasMain":false}

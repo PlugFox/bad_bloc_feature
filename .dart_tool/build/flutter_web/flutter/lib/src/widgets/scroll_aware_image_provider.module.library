@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["flutter|lib/painting.dart","flutter|lib/scheduler.dart","flutter|lib/src/widgets/disposable_build_context.dart","flutter|lib/src/widgets/framework.dart","flutter|lib/src/widgets/scrollable.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["async"],"hasMain":false}
