@@ -2,10 +2,9 @@
 // ignore_for_file: unawaited_futures, avoid_print
 import 'dart:async';
 import 'package:meta/meta.dart' show immutable;
-import 'package:rxdart/rxdart.dart'; 
+import 'package:rxdart/rxdart.dart';
 import 'package:bloc/bloc.dart';
 export 'package:bloc/bloc.dart' show BlocSupervisor;
-
 
 /* EVENTS */
 
@@ -39,7 +38,8 @@ class SetTickType extends BlocEvent {
 
 @immutable
 abstract class BlocState {
-  const BlocState();
+  final TickType tickType;
+  const BlocState(this.tickType);
 }
 
 @immutable
@@ -47,7 +47,7 @@ mixin SwitchStatus {}
 
 @immutable
 class Stopped extends BlocState with SwitchStatus {
-  const Stopped();
+  const Stopped(TickType tickType) : super(tickType);
   @override
   int get hashCode => 0;
   @override
@@ -56,7 +56,7 @@ class Stopped extends BlocState with SwitchStatus {
 
 @immutable
 class Started extends BlocState with SwitchStatus {
-  const Started();
+  const Started(TickType tickType) : super(tickType);
   @override
   int get hashCode => 0;
   @override
@@ -68,21 +68,16 @@ mixin Tick {}
 
 @immutable
 class ImmutableTick extends BlocState with Tick {
-  const ImmutableTick();
-  @override
-  int get hashCode => 0;
-  @override
-  bool operator ==(Object obj) => obj is Tick;
+  ImmutableTick() : super(TickType.immutable);
 }
 
 @immutable
 class TickTypeInstalled extends BlocState {
-  final TickType tickType;
-  const TickTypeInstalled(this.tickType);
+  const TickTypeInstalled(TickType tickType) : super(tickType);
 }
 
 class MutableTick extends BlocState with Tick {
-  MutableTick();
+  MutableTick() : super(TickType.mutable);
 }
 
 enum TickType {
@@ -90,32 +85,27 @@ enum TickType {
   immutable,
 }
 
-
 /* BLoC */
 
 ///
 class Ticker extends Bloc<BlocEvent, BlocState> {
   @override
-  BlocState get initialState => const Stopped();
+  BlocState get initialState => const Stopped(TickType.mutable);
+
+  StreamSubscription<int> _streamSubscription;
 
   Stream<State> whereState<State>() => whereType<State>();
 
-  TickType _tickType = TickType.mutable;
-
-  final StreamSubscription<EmmitTick> _controller = Stream<EmmitTick>
-                                                    .periodic(const Duration(seconds: 1))
-                                                    .asBroadcastStream()
-                                                    .map<EmmitTick>((void _) => const EmmitTick())
-                                                    .listen((event) {})
-                                                    ..pause();
   Ticker() {
-    _controller.onData(add);
+    _streamSubscription = Stream<int>.periodic(const Duration(seconds: 1))
+        .listen((tick) => add(const EmmitTick()))
+          ..pause();
   }
 
   @override
   Stream<BlocState> mapEventToState(BlocEvent event) async* {
     if (event is EmmitTick) {
-      yield _emmitTick(event);
+      yield _emmitTick();
     } else if (event is StartTicker) {
       yield* _startTicker(event);
     } else if (event is StopTicker) {
@@ -128,58 +118,30 @@ class Ticker extends Bloc<BlocEvent, BlocState> {
   }
 
   Stream<BlocState> _startTicker([BlocEvent _]) async* {
-    _controller.resume();
-    yield const Started();
+    _streamSubscription.resume();
+    yield Started(state.tickType);
   }
 
   Stream<BlocState> _stopTicker([BlocEvent _]) async* {
-    _controller.pause();
-    yield const Stopped();
+    _streamSubscription.pause();
+    yield Stopped(state.tickType);
   }
 
-  BlocState _emmitTick([BlocEvent _]) {
-    print(' * tick');
-    if (_tickType == TickType.mutable) {
-      return MutableTick();
-    } else {
-      /// TODO: Problem with const/singleton/immutable/Enum/Void state
-      /// sometimes we need duplicate values or void callbacks
-      /// This is a problem with unexpected behavior:
-      /// 
-      /// ```
-      /// _bindStateSubject() {
-      ///   ...
-      ///   if (state == nextState)
-      ///   ...
-      /// }
-      /// ```
-      /// 
-      /// State checks should be done at the UI layer or in the reducer (StreamTransformer).
-      /// 
-      /// Also this check not working like `myBloc.whereType<MyState>().distinct()`
-      ///  when one bloc contains many sorts of States for different StreamBuilder's
-      ///  this condinion doesn't matter and does not play any significant role.
-      /// 
-      /// We need remove this check or may override them
-      /// 
-      return const ImmutableTick();
-    }
+  BlocState _emmitTick() {
+    return state.tickType == TickType.mutable ? MutableTick() : ImmutableTick();
   }
 
   Stream<BlocState> _setTickType(SetTickType event) async* {
-    _tickType = event?.tickType ?? TickType.mutable;
-    yield TickTypeInstalled(_tickType);
+    yield TickTypeInstalled(event?.tickType ?? TickType.mutable);
   }
 
   @override
-  Future<void> close() =>
-    Future.wait(<Future<void>>[
-      _controller.cancel(),
-      super.close(),
-    ]);
+  Future<void> close() => Future.wait(<Future<void>>[
+        _streamSubscription.cancel(),
+        super.close(),
+      ]);
 }
 
-///
 class TickerDelegate extends BlocDelegate {
   @override
   void onEvent(Bloc bloc, Object event) {
@@ -190,7 +152,7 @@ class TickerDelegate extends BlocDelegate {
   @override
   void onTransition(Bloc bloc, Transition transition) {
     super.onTransition(bloc, transition);
-    //print('Transition \'${transition.currentState.toString()} -> ${transition.nextState.toString()}\'');
+    print(transition);
   }
 
   @override
